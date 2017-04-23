@@ -15,7 +15,7 @@ if ($argc > 1) {
 if ($mode == "dev") {
   require_once('/home/ubuntu/DevTagTalkServices/Applications/ThriftRpc/Lib/Thrift/ClassLoader/ThriftClassLoader.php');
   require_once('/home/ubuntu/DevTagTalkServices/Applications/ThriftRpc/Services/WineMateServices/WineMateServices.php');
-  require_once('/home/ubuntu/DevTagTalkServices/Applications/ThriftRpc/Services/WineMateServices/Type.php');
+  require_once('/home/ubuntu/DevTagTalkServices/Applications/ThriftRpc/Services/WineMateServices/Types.php');
   $GEN_DIR = realpath(dirname(__FILE__)).'/gen-php';
   $loader = new \Thrift\ClassLoader\ThriftClassLoader();
   $loader->registerNamespace('Thrift', __DIR__ .'/../../../lib/php/lib');
@@ -335,6 +335,8 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
           $wineInfo->openedTime = $open_row['date'].", ".$open_row['time'];
           $wineInfo->openedCity = $open_row['city_name'];
           $wineInfo->openedCountry = $open_row['country_name'];
+		  $wineInfo->latitude = $open_row['latitude'];
+		  $wineInfo->longitude = $open_row['longitude'];
         }
       }
       $wineInfo->wineId = $row['wine_id'];
@@ -411,9 +413,9 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
       $sql_update_open = "UPDATE tag_info SET is_open = 1, open_time = ".$now." , open_user_id = ".$openInfo->userId." WHERE tag_id = '".$openInfo->tagId."'";
       $conn->query($sql_update_open);
 
-      $sql_update_open_history = sprintf("INSERT INTO bottle_open_history VALUES (%d, %d, %d, '%s', '%s', '%s', '%s', '%s')",
+      $sql_update_open_history = sprintf("INSERT INTO bottle_open_history VALUES (%d, %d, %d, '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
                             $row['wine_id'], $openInfo->userId, $now, $openInfo->city,
-                            $openInfo->date, $openInfo->time, $openInfo->tagId, $openInfo->country);
+                            $openInfo->date, $openInfo->time, $openInfo->tagId, $openInfo->country, $openInfo->latitude, $openInfo->longitude);
       $conn->query($sql_update_open_history);
       $sql_update_qr_code = sprintf("UPDATE qr_code SET is_used = 1, time_used = %d WHERE code = '%s'",
                                      $now, $openInfo->bottleOpenIdentifier);
@@ -656,8 +658,9 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
     $sql_result = $conn->query($sql_find_info);
     $response->ratedNumber = $sql_result->num_rows;
 
-    $sql_find_info = "SELECT wine_id, city_name, date, time FROM bottle_open_history WHERE user_id = ".$request->userId." ORDER BY time_stamp DESC";
+    $sql_find_info = "SELECT wine_id, city_name, date, time, latitude, longitude FROM bottle_open_history WHERE user_id = ".$request->userId." ORDER BY time_stamp DESC";
     $sql_result = $conn->query($sql_find_info);
+	var_dump($sql_find_info);
     $response->openedNumber = $sql_result->num_rows;
     for($i = 0; $i < $sql_result->num_rows; $i++) {
       $row = $sql_result->fetch_assoc();
@@ -667,6 +670,8 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
       $data->openDate = $row['date'];
       $data->openTime = $row['time'];
       $data->openCity = $row['city_name'];
+	  $data->latitude = $row['latitude'];
+	  $data->longitude = $row['longitude'];
       $table_name = ($request->countryId == 1 ? "wine_basic_info_english" : "wine_basic_info_chinese");
       $sql2 = "SELECT * FROM ".$table_name." WHERE wine_id = ".$wineId;
       $sql2 = $conn->query($sql2);
@@ -729,7 +734,7 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
   }
 
   public function getMyRatedBottles(\Services\WineMateServices\MyBottlesRequest $request) {
-    $response = new \Services\WineMateServices\ScannedBottlesResponse;
+    $response = new \Services\WineMateServices\RatedBottlesResponse;
     $response->ratedBottleHistory = array();
     $conn = db_connect();
     $rated_map = array();
@@ -757,7 +762,7 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
         $data->myRate = $row['score'];
         $data->year = strval($row2['year']);
       }
-      $response->scannedBottleHistory[] = $data;
+      $response->ratedBottleHistory[] = $data;
       $rated_map[$wineId] = $data;
     }
     return $response;
@@ -1190,11 +1195,10 @@ class WineMateServicesHandler implements \Services\WineMateServices\WineMateServ
     }
     print($sql);    
     $result = $conn->query($sql);
-    
-	// If this is a open bottle action, we should not check the object_id (wine_id).
-	// Instead we should check the tag_id is not opened yet. 
-	// As a temp fix, I simply ignore object_id check for openBottle action, since we can assume the frontend will make this call only when the bottle is not opened.
-	// TODO(jack): check if the tag_id is not opened here!!
+    // If this is a open bottle action, we should not check the object_id (wine_id).
+    // Instead we should check the tag_id is not opened yet. 
+    // As a temp fix, I simply ignore object_id check for openBottle action, since we can assume the frontend will make this call only when the bottle is not opened.
+    // TODO(jack): check if the tag_id is not opened here!! 
     if ($actionType != \Services\WineMateServices\UserActions::OpenedBottle && $result->num_rows > 0) {
       return $response;
     }
