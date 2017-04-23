@@ -1,10 +1,8 @@
 <?php
-//namespace wineMateThrift\php;
-#require_once './libs/PHPMailer-master/PHPMailerAutoload.php';
-require_once '/home/ubuntu/yaoliu/thrift/tutorial/tagtalk_dev/libs/PHPMailer-master/PHPMailerAutoload.php';
-#require_once 'libs/PHPMailer-master/PHPMailerAutoload.php';
-require_once 'PEAR.php';
-require_once 'Mail.php';
+// require_once 'PHPMailer/PHPMailerAutoload.php';
+// Disable PEAR and Mail (not required for now), so don't need to install it everytime.
+#require_once 'PEAR.php';
+#require_once 'Mail.php';
 
 // Send email from Amazon SES service. 
 // Setup steps: http://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-using-smtp-php.html
@@ -144,7 +142,7 @@ function sendEmailAboutPassword($email_address, $user_name, $pw, $user_id) {
   </html>', $user_name, $email_address, $pw, $user_id);
 
   // Send from contactus@tagtalk.co by using Amazon SES. 
-  if (!sendByAmazonSES($to, $subject, $message)) {
+  // if (!sendByAmazonSES($to, $subject, $message)) {
     // If send by Amazon SES failed, send by using PhpMailer.
     if (!sendByPhpMailer($to, $subject, $message)) {
       // If send by TagTalk email account failed, fallback to send by system.
@@ -158,7 +156,7 @@ function sendEmailAboutPassword($email_address, $user_name, $pw, $user_id) {
       $headers .= "Return-Path: support@tagtalk.co\r\n";
       mail($to, $subject, $message, $headers);
     }
-  }
+  // }
 }
 
 function mergeScoreAndReview($conn, $score_array, $review_array) {
@@ -433,7 +431,7 @@ function send_activate_email($conn, $userId) {
     </html>', $userId, $userId);
 
     // Send from contactus@tagtalk.co by using Amazon SES. 
-    if (!sendByAmazonSES($to, $subject, $message)) {
+    // if (!sendByAmazonSES($to, $subject, $message)) {
       // If send by Amazon SES failed, send by using PhpMailer.
       if (!sendByPhpMailer($to, $subject, $message)) {
         // If send by TagTalk email account failed, fallback to send by system.
@@ -447,7 +445,7 @@ function send_activate_email($conn, $userId) {
         $headers .= "Return-Path: support@tagtalk.co\r\n";
         mail($to, $subject, $message, $headers);
       }
-    }
+    // }
     return true;
   }
   return false;

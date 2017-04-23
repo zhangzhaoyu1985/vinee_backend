@@ -76,15 +76,32 @@ Steps
 1) On master, grant all privlege (including replication) to slave, and all servers that might access master:
 	# mysql -u root -p
 	mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'50.18.207.106' identified by 'TagTalk78388!'; -----> do this for all servers (for now we only have this one)
+	mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'54.223.152.54' identified by 'TagTalk78388!';
+	mysql> grant replication slave on *.* TO 'root'@'50.18.207.106' identified by 'TagTalk78388!';
 	mysql> flush privileges;
 	mysql> quit
-2) On master, in "/etc/mysql/my.cnf", add these at the end:
+2) On master, in "/etc/mysql/my.cnf", add these at the end of [mysqld] section:
+
+[mysqld]
+	log-slave-updates
 	bind-address = 0.0.0.0
 	server-id = 1
 	log-bin = mysql-bin
 	binlog-ignore-db = "mysql"
+
 3) On master:
 	sudo /etc/init.d/mysql restart
+	
+**********Important**********
+"ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (2)"
+
+Some systems aren't setup to have an elegant way to stop mysql (or for some reason mysql doesn't respond) and you can force terminate mysql with either:
+One step: pkill -9 mysqld
+Two step (least preferred):
+Find the process id of mysql with either pgrep mysql or ps aux | grep mysql | grep -v grep
+Assuming the process id is 4969 terminate with kill -9 4969
+*****************************
+
 4) On master:
 	# mysql -u root -p
 	mysql> FLUSH TABLES WITH READ LOCK;
@@ -94,8 +111,9 @@ Will get something like:
 +------------------+----------+--------------+------------------+
 | File             | Position | Binlog_Do_DB | Binlog_Ignore_DB |
 +------------------+----------+--------------+------------------+
-| mysql-bin.000042 |  1747334 |              |                  |
+| mysql-bin.000005 |      107 |              | mysql            |
 +------------------+----------+--------------+------------------+
+
 
 5) On master:
 	mysqldump -u root -p --databases wineTage1 phpmyadmin > /home/ubuntu/yaoliu/db_dump_3_16.sql
@@ -105,13 +123,14 @@ Will get something like:
 
 	Now do not change anything on the master db. One you make a change the position will change.
 	Use fileZilla to copy the file db_dump_3_16.sql to your computer.
-6) On slave, in "/etc/mysql/my.cnf", add these at the end:
+6) On slave, in "/etc/mysql/my.cnf", add these at the end of [mysqld] section:
 	bind-address = 0.0.0.0
 	server-id = 2
-	master-host = '54.223.152.54'
-	master-user = root
-	master-password = TagTalk78388!
-	master-connect-retry = 60
+	# The following will cause mysql failed to start issue, comment them out!
+	#master-host = '54.223.152.54'
+	#master-user = root
+	#master-password = TagTalk78388!
+	#master-connect-retry = 60
 7) Use fileZilla to copy the file db_dump_3_16.sql to slave, let say /home/ubuntu/lingyao/db_3_16.sql.
 	mysql -u root -p < /home/ubuntu/lingyao/db_3_16.sql
 8) On slave:
@@ -121,8 +140,8 @@ Will get something like:
 	mysql> CHANGE MASTER TO MASTER_HOST='54.223.152.54',
 			MASTER_USER='root',
 			MASTER_PASSWORD='TagTalk78388!',
-			MASTER_LOG_FILE='mysql-bin.000042',
-			MASTER_LOG_POS=1747334;     <------------ Match the master position. You can do show master status on master to verify.
+			MASTER_LOG_FILE='mysql-bin.000005',
+			MASTER_LOG_POS=107;     <------------ Match the master position. You can do show master status on master to verify.
 			
 	mysql> START SLAVE;
 	
@@ -143,3 +162,10 @@ With above installation, detect_failure_cron.py can use smtplib.SMPT('localhost'
 Linux Cmd
 ===========================================
 Find: grep -R 'ThriftClassLoader' .
+
+
+========================
+SQL
+========================
+List last 20 tags:
+select tag_id, time_created from tag_info order by time_created desc limit 20;

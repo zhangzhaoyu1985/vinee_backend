@@ -1,4 +1,5 @@
 namespace php Services.WineMateServices
+namespace java co.tagtalk.winemate.thriftfiles
 
 // Registration and login (A1)
 
@@ -75,6 +76,8 @@ struct WineInfo {
 	14: i32		rewardPoint,
 	15: string wineryLogoPicUrl,
 	16: string wineryNationalFlagUrl,
+	17: string latitude,
+	18: string longitude,
 }
 
 enum CountryId {
@@ -92,6 +95,8 @@ struct BottleOpenInfo {
 	7: string city,
 	8: string detailedLocation,
 	9: string country,
+	10: string latitude,
+	11: string longitude,
 }
 
 // WineInfo (A3)
@@ -194,6 +199,9 @@ struct BottleInfo {
 	10: string year,
 	11: string wineryName,
 	12: double averageRate = 0,
+	13: string latitude,
+	14: string longitude,
+	
 }
 
 struct MyBottlesRequest {
